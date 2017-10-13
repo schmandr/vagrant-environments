@@ -1,3 +1,5 @@
+**This machine is deprecated - Do not use**
+
 # gradle-dev
 
 These scripts set up a virtual machine with Ubuntu 16.04, Java and Gradle. This machine may be used to develop and test GRETL (Gradle) scripts. Follow the instructions below:
