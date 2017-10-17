@@ -11,7 +11,7 @@ tcp6       0      0 :::22                   :::*                    LISTEN
 tcp6       0      0 :::5432                 :::*                    LISTEN
 ```
 
-Two roles are created: `ddluser` and `dmluser`. _Nomen est omen_: `ddluser` should be used for `ddl` statements in the automatically created database `sogis` (which he owns). The `dmluser` should be used for `dml` statements.
+Two roles are created: `ddluser` and `dmluser`. "Nomen est omen": `ddluser` should be used for `ddl` statements in the automatically created database `sogis` (which he owns). The `dmluser` should be used for `dml` statements.
 
 Tested with an _ili2pg_ import from the host (macOS):
 
