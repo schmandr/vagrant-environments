@@ -1,6 +1,6 @@
 # PostgreSQL-10-PostGIS-2.4
 
-Installs PostgreSQL 10 and PostGIS 2.4 in an Ubuntu 16.04 box. IP address is 192.168.50.5 and SSH port is forwarded to 2020. 
+Installs _PostgreSQL 10_ and _PostGIS 2.4_ in an _Ubuntu 16.04 box_. IP address is `192.168.50.5` and SSH port is forwarded to `2020`. 
 
 PostgreSQL can be reached from anywhere, `netstat -nlt`:
 
