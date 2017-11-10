@@ -68,10 +68,13 @@ Vagrant.configure("2") do |config|
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
+    locale-gen de_CH.utf8
+    echo "Europe/Zurich" | tee /etc/timezone
+    dpkg-reconfigure --frontend noninteractive tzdata
     echo 'deb     http://qgis.org/debian-nightly artful main' | tee /etc/apt/sources.list.d/qgis.list
     apt-key adv --keyserver keyserver.ubuntu.com --recv-key CAEB3DC3BDF7FB45
     apt-get update
     apt-get install -y qgis python-qgis qgis-plugin-grass
-    apt-get install -y xauth
+    apt-get install -y xauth zip
   SHELL
 end
