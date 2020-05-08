@@ -1,0 +1,138 @@
+---
+- hosts: all
+  tasks:
+  - name: generate locale de_CH.utf8
+    command: locale-gen de_CH.utf8
+  - name: add key for PostgreSQL repository providing older PostgreSQL versions
+    apt_key:
+      id: ACCC4CF8
+      url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+      state: present
+  - name: add PostgreSQL repository providing older PostgreSQL versions
+    apt_repository:
+      repo: 'deb http://apt.postgresql.org/pub/repos/apt/ trusty-pgdg main'
+      state: present
+      filename: 'pgdg'
+  - name: Update the apt cache
+    apt:
+      update_cache: yes
+      cache_valid_time: 3600
+  - name: install PostgreSQL 9.2
+    apt: name={{ item }}
+    with_items:
+    - postgresql-9.2
+    - postgresql-client-9.2
+    - postgresql-server-dev-9.2
+    - postgresql-plpython-9.2
+  - name: install various tools needed for compiling PostGIS 1.5
+    apt: name={{ item }}
+    with_items:
+    - autotools-dev
+    - bison
+    - flex
+    - libgeos-dev
+    - libgtk2.0-dev
+    - libproj-dev
+    - libssl-dev
+    - libxml2-dev
+    - xsltproc
+  - name: install various tools needed for compiling the Fineltra extension for PostgreSQL
+    apt: name={{ item }}
+    with_items:
+    - zip
+    - autoconf
+    - liblwgeom-dev
+  - name: create new directory for PostgreSQL 9.2 clusters
+    file:
+      path: /opt/pg_db/9.2
+      state: directory
+      mode: 0755
+      owner: postgres
+      group: postgres
+  - name: create new directory for the PostgreSQL 9.2 main cluster
+    file:
+      path: /opt/pg_db/9.2/main
+      state: directory
+      mode: 0700
+      owner: postgres
+      group: postgres
+  - name: stop PostgreSQL service
+    service:
+      name: postgresql
+      state: stopped
+  - name: drop the current 9.2 main PostgreSQL cluster
+    command: pg_dropcluster 9.2 main
+  - name: create a new 9.2 main PostgreSQL cluster at the desired location
+    command: pg_createcluster -d /opt/pg_db/9.2/main 9.2 main
+    notify:
+    - start PostgreSQL service
+  - name: add postgresql.include.conf file (contains the modified PostgreSQL configuration)
+    template:
+      src: templates/postgresql.include.conf.j2
+      dest: /etc/postgresql/9.2/main/postgresql.include.conf
+      owner: postgres
+      group: postgres
+      mode: 0644
+    notify: 
+    - start PostgreSQL service
+  - name: insert a line in postgresql.conf referencing the postgresql.include.conf file
+    lineinfile:
+      dest: /etc/postgresql/9.2/main/postgresql.conf
+      line: include='/etc/postgresql/9.2/main/postgresql.include.conf'
+    notify:
+    - start PostgreSQL service
+  - name: insert a line in pg_hba.conf allowing DB access from the host machine using port forwarding
+    lineinfile:
+      dest: /etc/postgresql/9.2/main/pg_hba.conf
+      line: host    all             {{ lookup('env', 'USER') }}        10.0.2.2/32             trust
+    notify: 
+    - start PostgreSQL service
+  - name: insert a line in pg_hba.conf allowing DB access from the host machine using the IP address of the virtual machine
+    lineinfile:
+      dest: /etc/postgresql/9.2/main/pg_hba.conf
+      line: host    all             {{ lookup('env', 'USER') }}        192.168.56.1/32         trust
+    notify:
+    - start PostgreSQL service
+  - name: create directory for PostgreSQL database backups
+    file:
+      path: /opt/backupdb
+      state: directory
+      mode: 0755
+      owner: postgres
+      group: postgres
+  - name: grant write permission on /opt/backupdb to the vagrant group (needed for development machines only)
+    file:
+      path: /opt/backupdb/
+      group: vagrant
+      mode: g+w
+  - name: get the PostGIS sources
+    unarchive:
+      src: postgis-1.5.8.tar.gz
+      dest: /usr/local/src/
+      owner: root
+      group: root
+  - name: configure PostGIS
+    command: ./configure chdir=/usr/local/src/postgis-1.5.8/
+    # I have omitted --prefix=/usr/local/postgis-1.5.8 because it has no effect anyways (read in the PostGIS installation instructions)
+  - name: compile PostGIS
+    command: make chdir=/usr/local/src/postgis-1.5.8/
+  - name: install PostGIS
+    command: make install chdir=/usr/local/src/postgis-1.5.8/
+  - name: get the FINELTRA sources
+    unarchive:
+      src: fineltra-master-5fe24d1.zip
+      dest: /usr/local/src/
+  - name: autogen FINELTRA
+    command: ./autogen.sh chdir=/usr/local/src/fineltra-master/
+  - name: configure FINELTRA
+    command: ./configure chdir=/usr/local/src/fineltra-master/
+  - name: compile FINELTRA
+    command: make chdir=/usr/local/src/fineltra-master/
+  - name: install FINELTRA
+    command: make install chdir=/usr/local/src/fineltra-master/
+
+  handlers:
+  - name: start PostgreSQL service
+    service:
+      name: postgresql
+      state: started
